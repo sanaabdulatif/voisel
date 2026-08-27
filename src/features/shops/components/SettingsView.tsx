@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, LogOut, Plus, ShieldCheck, Mail, Edit3, Trash2 } from 'lucide-react';
+import { Store, LogOut, Plus, Mail, Edit3, Trash2 } from 'lucide-react';
 import { useAppStore } from '../../../shared/lib/store';
 import type { VoiselShop } from '../../../shared/lib/store';
 import { supabase } from '../../../shared/lib/supabase';
@@ -113,20 +113,19 @@ export function SettingsView() {
       </div>
 
       {/* USER PROFILE INFO */}
-      <div className="glass-card p-6 flex flex-col sm:flex-row items-center gap-5">
-        <div className="w-14 h-14 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-xl shrink-0">
-          {session?.user?.email?.charAt(0).toUpperCase() || 'S'}
-        </div>
-        <div className="text-center sm:text-left space-y-1 flex-1 min-w-0">
-          <h4 className="text-base font-bold text-brand-darkText">Shopkeeper Account</h4>
-          <p className="text-xs text-brand-mutedText font-semibold flex items-center justify-center sm:justify-start gap-1">
-            <Mail size={12} /> {session?.user?.email || 'N/A'}
-          </p>
-          <p className="text-[10px] text-brand-primary font-extrabold flex items-center justify-center sm:justify-start gap-1 uppercase tracking-wider">
-            <ShieldCheck size={12} /> Connected to Supabase Cloud
+      <div className="glass-card p-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+        <div className="space-y-1.5 min-w-0 text-left">
+          <h4 className="text-base font-bold text-brand-dark">{currentShop?.name || 'Loading Shop...'}</h4>
+          <p className="text-xs text-brand-mutedText font-semibold flex items-center gap-1.5">
+            <Mail size={14} className="text-brand-mutedText/70" /> 
+            <span>{session?.user?.email || 'N/A'}</span>
           </p>
         </div>
-        <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-2 text-brand-error hover:bg-red-50 text-xs py-2 px-3 self-stretch sm:self-auto border border-brand-error/10 rounded-xl">
+        <Button 
+          variant="ghost" 
+          onClick={handleLogout} 
+          className="flex items-center gap-2 text-brand-error hover:bg-red-50 text-xs py-2.5 px-4 self-stretch sm:self-auto border border-brand-error/10 rounded-xl"
+        >
           <LogOut size={14} />
           <span>Logout</span>
         </Button>

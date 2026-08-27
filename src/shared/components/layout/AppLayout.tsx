@@ -28,6 +28,7 @@ export function AppLayout() {
   const location = useLocation();
   const [shops, setShops] = useState<VoiselShop[]>([]);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
+  const isSettingsPage = location.pathname === '/settings';
 
   // Fetch shops
   useEffect(() => {
@@ -220,75 +221,77 @@ export function AppLayout() {
       {/* MOBILE PAGE WRAPPER */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0 h-screen overflow-y-auto">
         {/* UNIVERSAL TOP HEADER */}
-        <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-cream/60 sticky top-0 z-20">
-          {/* Shop Selector Button */}
-          <div className="relative">
-            <button
-              onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
-              className="flex items-center gap-1.5 text-brand-darkText font-bold text-base"
-            >
-              <span>{currentShop?.name || 'Voisel'}</span>
-              <ChevronDown size={16} className={`text-brand-mutedText transition-transform ${isShopDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
+        {!isSettingsPage && (
+          <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-cream/60 sticky top-0 z-20">
+            {/* Shop Selector Button */}
+            <div className="relative">
+              <button
+                onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
+                className="flex items-center gap-1.5 text-brand-darkText font-bold text-base"
+              >
+                <span>{currentShop?.name || 'Voisel'}</span>
+                <ChevronDown size={16} className={`text-brand-mutedText transition-transform ${isShopDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {isShopDropdownOpen && (
-              <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-premium border border-brand-cream/60 z-30 max-h-48 overflow-y-auto p-1.5">
-                 {shops.map((shop) => (
-                  <div
-                    key={shop.id}
-                    className={`w-full px-3 py-1.5 text-sm rounded-lg flex items-center justify-between transition-colors ${
-                      currentShop?.id === shop.id 
-                        ? 'bg-brand-primary/10 text-brand-dark font-semibold' 
-                        : 'hover:bg-brand-cream/50 text-brand-darkText'
-                    }`}
-                  >
+              {isShopDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-premium border border-brand-cream/60 z-30 max-h-48 overflow-y-auto p-1.5">
+                   {shops.map((shop) => (
+                    <div
+                      key={shop.id}
+                      className={`w-full px-3 py-1.5 text-sm rounded-lg flex items-center justify-between transition-colors ${
+                        currentShop?.id === shop.id 
+                          ? 'bg-brand-primary/10 text-brand-dark font-semibold' 
+                          : 'hover:bg-brand-cream/50 text-brand-darkText'
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          setCurrentShop(shop);
+                          setIsShopDropdownOpen(false);
+                        }}
+                        className="flex-1 text-left truncate min-w-0"
+                      >
+                        {shop.name}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteShop(shop.id, shop.name);
+                        }}
+                        className="p-1 rounded text-brand-mutedText hover:text-brand-error hover:bg-red-50 transition-colors ml-2 shrink-0"
+                        title="Delete Branch"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="border-t border-brand-cream/60 mt-1.5 pt-1.5">
                     <button
                       onClick={() => {
-                        setCurrentShop(shop);
                         setIsShopDropdownOpen(false);
+                        navigate('/settings');
                       }}
-                      className="flex-1 text-left truncate min-w-0"
+                      className="w-full text-left px-3 py-1.5 text-xs font-semibold text-brand-primary"
                     >
-                      {shop.name}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteShop(shop.id, shop.name);
-                      }}
-                      className="p-1 rounded text-brand-mutedText hover:text-brand-error hover:bg-red-50 transition-colors ml-2 shrink-0"
-                      title="Delete Branch"
-                    >
-                      <Trash2 size={12} />
+                      + Add New Shop
                     </button>
                   </div>
-                ))}
-                <div className="border-t border-brand-cream/60 mt-1.5 pt-1.5">
-                  <button
-                    onClick={() => {
-                      setIsShopDropdownOpen(false);
-                      navigate('/settings');
-                    }}
-                    className="w-full text-left px-3 py-1.5 text-xs font-semibold text-brand-primary"
-                  >
-                    + Add New Shop
-                  </button>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div className="flex items-center gap-3">
-            {/* Prominent Voice Assistant Microphone Button */}
-            <button
-              onClick={() => setVoiceOverlayOpen(true)}
-              className="flex items-center justify-center w-11 h-11 bg-brand-primary text-white rounded-full hover:bg-brand-dark transition-all duration-200 active:scale-95 shadow-md listening-ring cursor-pointer"
-              title="Open Voice Assistant"
-            >
-              <Mic size={18} className="animate-pulse" />
-            </button>
-          </div>
-        </header>
+            <div className="flex items-center gap-3">
+              {/* Prominent Voice Assistant Microphone Button */}
+              <button
+                onClick={() => setVoiceOverlayOpen(true)}
+                className="flex items-center justify-center w-11 h-11 bg-brand-primary text-white rounded-full hover:bg-brand-dark transition-all duration-200 active:scale-95 shadow-md listening-ring cursor-pointer"
+                title="Open Voice Assistant"
+              >
+                <Mic size={18} className="animate-pulse" />
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* PAGE CONTENT CONTAINER */}
         <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
