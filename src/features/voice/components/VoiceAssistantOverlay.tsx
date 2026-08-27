@@ -28,11 +28,8 @@ export function VoiceAssistantOverlay() {
   const updateProductMutation = useUpdateProduct();
   const addProductMutation = useAddProduct();
 
-  // Speech Recognition state - load from settings preference
-  const lang = useMemo(() => {
-    const pref = localStorage.getItem('voisel_language_pref') || 'en';
-    return pref === 'ml' ? 'ml-IN' : 'en-IN';
-  }, [isVoiceOverlayOpen]);
+  // Speech Recognition state - defaults to India English (supports bilingual English/Manglish/Malayalam accent)
+  const lang = 'en-IN';
 
   const { startListening, stopListening, simulateSpeech } = useSpeechRecognition(lang);
 

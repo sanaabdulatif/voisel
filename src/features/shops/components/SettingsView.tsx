@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, LogOut, Plus, ShieldCheck, Mail, Languages, Edit3, Trash2 } from 'lucide-react';
+import { Store, LogOut, Plus, ShieldCheck, Mail, Edit3, Trash2 } from 'lucide-react';
 import { useAppStore } from '../../../shared/lib/store';
 import type { VoiselShop } from '../../../shared/lib/store';
 import { supabase } from '../../../shared/lib/supabase';
@@ -15,15 +15,7 @@ export function SettingsView() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Language preferences state
-  const [langPref, setLangPref] = useState<'en' | 'ml' | 'manglish'>(() => {
-    return (localStorage.getItem('voisel_language_pref') as any) || 'en';
-  });
 
-  const handleLangChange = (lang: 'en' | 'ml' | 'manglish') => {
-    setLangPref(lang);
-    localStorage.setItem('voisel_language_pref', lang);
-  };
 
   useEffect(() => {
     fetchShops();
@@ -140,45 +132,7 @@ export function SettingsView() {
         </Button>
       </div>
 
-      {/* LANGUAGE PREFERENCE */}
-      <div className="glass-card p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
-            <Languages size={18} />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold uppercase tracking-wider text-brand-dark">Voice Language Preference</h4>
-            <p className="text-xs text-brand-mutedText mt-0.5">Select the primary dialect processed by the AI voice decoder</p>
-          </div>
-        </div>
 
-        <div className="flex bg-brand-cream/45 p-1 rounded-xl">
-          <button
-            onClick={() => handleLangChange('en')}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
-              langPref === 'en' ? 'bg-white text-brand-primary shadow-sm' : 'text-brand-mutedText hover:text-brand-darkText'
-            }`}
-          >
-            English / Manglish
-          </button>
-          <button
-            onClick={() => handleLangChange('ml')}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
-              langPref === 'ml' ? 'bg-white text-brand-primary shadow-sm' : 'text-brand-mutedText hover:text-brand-darkText'
-            }`}
-          >
-            മലയാളം (Malayalam)
-          </button>
-          <button
-            onClick={() => handleLangChange('manglish')}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
-              langPref === 'manglish' ? 'bg-white text-brand-primary shadow-sm' : 'text-brand-mutedText hover:text-brand-darkText'
-            }`}
-          >
-            Manglish (Simulated)
-          </button>
-        </div>
-      </div>
 
       {/* MULTI-SHOP LIST */}
       <div className="glass-card p-6 space-y-6">
