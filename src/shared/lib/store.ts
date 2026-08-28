@@ -8,8 +8,19 @@ export interface VoiselShop {
   created_at: string;
 }
 
+export interface VoiceConfirmationItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unit: string;
+  price?: number;
+  sellingPrice?: number;
+  purchasePrice?: number;
+  originalStock?: number;
+}
+
 export interface VoiceConfirmation {
-  type: 'sale' | 'stock_add' | 'price_update' | 'query' | 'product_create';
+  type: 'sale' | 'stock_add' | 'price_update' | 'query' | 'product_create' | 'multi_items';
   productName: string;
   productId?: string;
   quantity?: number;
@@ -22,6 +33,7 @@ export interface VoiceConfirmation {
   currentPrice?: number;
   newPrice?: number;
   queryResult?: any;
+  items?: VoiceConfirmationItem[];
 }
 
 interface AppState {

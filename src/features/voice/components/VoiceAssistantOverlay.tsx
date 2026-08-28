@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Mic, X, CheckCircle2, AlertTriangle, ArrowRight, MessageSquareCode } from 'lucide-react';
+import { Mic, X, CheckCircle2, AlertTriangle, ArrowRight, MessageSquareCode, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAppStore } from '../../../shared/lib/store';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
@@ -38,6 +38,7 @@ export function VoiceAssistantOverlay() {
 
   // Auto-close overlay on success
   const [successRecorded, setSuccessRecorded] = useState(false);
+  const [confirmedActionType, setConfirmedActionType] = useState<'sale' | 'stock_add' | 'price_update' | 'product_create' | 'query' | null>(null);
 
   // Resolve matching product from database when confirmation is loaded
   const resolvedConfirmation = useMemo(() => {
@@ -54,6 +55,40 @@ export function VoiceAssistantOverlay() {
         totalAmount: qty * price,
         profit: qty * price,
         unit: voiceConfirmation.unit || 'kg'
+      };
+    }
+
+    if (voiceConfirmation.type === 'multi_items' && voiceConfirmation.items) {
+      const resolvedItems = voiceConfirmation.items.map((item) => {
+        const match = products.find(
+          (p) => 
+            p.name.toLowerCase() === item.productName.toLowerCase() ||
+            p.id === item.productId ||
+            p.name.toLowerCase().includes(item.productId?.toLowerCase() || '')
+        );
+        
+        if (match) {
+          return {
+            ...item,
+            productId: match.id,
+            productName: match.name,
+            unit: match.unit,
+            purchasePrice: Number(match.purchase_price),
+            sellingPrice: Number(match.selling_price),
+            originalStock: Number(match.quantity),
+          };
+        }
+        return {
+          ...item,
+          originalStock: 0,
+          purchasePrice: 0,
+          sellingPrice: 0
+        };
+      });
+      
+      return {
+        ...voiceConfirmation,
+        items: resolvedItems
       };
     }
     
@@ -103,6 +138,10 @@ export function VoiceAssistantOverlay() {
   const [editedQty, setEditedQty] = useState<number | null>(null);
   const [editedPrice, setEditedPrice] = useState<number | null>(null);
 
+  // States for unified sales & stock confirmations
+  const [actionType, setActionType] = useState<'sale' | 'stock_in'>('sale');
+  const [parsedItems, setParsedItems] = useState<any[]>([]);
+
   // Sync edits when confirmation changes
   useEffect(() => {
     if (resolvedConfirmation) {
@@ -112,11 +151,93 @@ export function VoiceAssistantOverlay() {
           ? (resolvedConfirmation.newPrice !== undefined ? resolvedConfirmation.newPrice : 0)
           : (resolvedConfirmation.price !== undefined ? resolvedConfirmation.price : 0)
       );
+
+      if (resolvedConfirmation.type === 'stock_add') {
+        setActionType('stock_in');
+      } else {
+        setActionType('sale');
+      }
+
+      if (resolvedConfirmation.type === 'multi_items' && resolvedConfirmation.items) {
+        setParsedItems(
+          resolvedConfirmation.items.map(item => ({
+            id: item.productId || '',
+            product: item.productName || '',
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.sellingPrice || 0,
+            currentStock: item.originalStock || 0,
+            purchasePrice: item.purchasePrice || 0,
+            sellingPrice: item.sellingPrice || 0
+          }))
+        );
+      } else if (resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add') {
+        const match = products.find(p => p.id === resolvedConfirmation.productId);
+        const currentStockVal = match ? Number(match.quantity) : 0;
+        const defaultPrice = resolvedConfirmation.price !== undefined ? resolvedConfirmation.price : (match ? Number(match.selling_price) : 0);
+        
+        setParsedItems([
+          {
+            id: resolvedConfirmation.productId || '',
+            product: resolvedConfirmation.productName || '',
+            quantity: resolvedConfirmation.quantity || 1,
+            unit: resolvedConfirmation.unit || 'kg',
+            unitPrice: defaultPrice,
+            currentStock: currentStockVal,
+            purchasePrice: match ? Number(match.purchase_price) : 0,
+            sellingPrice: match ? Number(match.selling_price) : defaultPrice
+          }
+        ]);
+      } else {
+        setParsedItems([]);
+      }
     } else {
       setEditedQty(null);
       setEditedPrice(null);
+      setParsedItems([]);
     }
-  }, [voiceConfirmation, resolvedConfirmation?.productId, resolvedConfirmation?.type]);
+  }, [voiceConfirmation, resolvedConfirmation?.productId, resolvedConfirmation?.type, products]);
+
+  // Handlers for modifying parsedItems
+  const handleActionTypeChange = (newType: 'sale' | 'stock_in') => {
+    setActionType(newType);
+    setParsedItems(prev => prev.map(item => {
+      const match = products.find(p => p.id === item.id);
+      const newPrice = newType === 'sale' 
+        ? (match ? Number(match.selling_price) : item.sellingPrice)
+        : (match ? Number(match.purchase_price) : item.purchasePrice);
+      return {
+        ...item,
+        unitPrice: newPrice || 0
+      };
+    }));
+  };
+
+  const updateItemQty = (index: number, qty: number) => {
+    setParsedItems((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, quantity: qty } : item))
+    );
+  };
+
+  const updateItemPrice = (index: number, price: number) => {
+    setParsedItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx === index) {
+          return {
+            ...item,
+            unitPrice: price,
+            sellingPrice: actionType === 'sale' ? price : item.sellingPrice,
+            purchasePrice: actionType === 'stock_in' ? price : item.purchasePrice
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const deleteItem = (index: number) => {
+    setParsedItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
 
   const currentQty = editedQty !== null ? editedQty : (resolvedConfirmation?.quantity || 0);
   const currentPrice = editedPrice !== null ? editedPrice : (
@@ -157,6 +278,7 @@ export function VoiceAssistantOverlay() {
     setVoiceError(null);
     setQueryResultStr(null);
     setSuccessRecorded(false);
+    setConfirmedActionType(null);
   };
 
   const handleSimulateSubmit = (e: React.FormEvent) => {
@@ -172,20 +294,30 @@ export function VoiceAssistantOverlay() {
     
     setVoiceStatus('processing');
     
+    const isStockOrSale = resolvedConfirmation.type === 'multi_items' || resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add';
+    const finalType = isStockOrSale ? (actionType === 'stock_in' ? 'stock_add' : 'sale') : resolvedConfirmation.type;
+    setConfirmedActionType(finalType as any);
+    
     try {
-      if (resolvedConfirmation.type === 'sale') {
-        if (!resolvedConfirmation.productId) {
-          throw new Error('Product details missing in voice sale.');
+      if (finalType === 'sale') {
+        if (isStockOrSale) {
+          for (const item of parsedItems) {
+            if (!item.id) continue;
+            const itemPrice = item.unitPrice;
+            const itemCost = item.purchasePrice || 0;
+            const total = item.quantity * itemPrice;
+            const profit = item.quantity * (itemPrice - itemCost);
+            
+            await recordSaleMutation.mutateAsync({
+              shopId: currentShop.id,
+              productId: item.id,
+              quantitySold: item.quantity,
+              sellingPrice: itemPrice,
+              totalAmount: total,
+              profit: profit
+            });
+          }
         }
-
-        await recordSaleMutation.mutateAsync({
-          shopId: currentShop.id,
-          productId: resolvedConfirmation.productId,
-          quantitySold: currentQty,
-          sellingPrice: currentPrice,
-          totalAmount: derivedValues?.totalAmount || 0,
-          profit: derivedValues?.profit || 0
-        });
 
         // Trigger Confetti!
         confetti({
@@ -198,20 +330,18 @@ export function VoiceAssistantOverlay() {
         setVoiceStatus('success');
       } 
       
-      else if (resolvedConfirmation.type === 'stock_add') {
-        if (!resolvedConfirmation.productId) {
-          throw new Error('Product details missing in stock addition.');
+      else if (finalType === 'stock_add') {
+        if (isStockOrSale) {
+          for (const item of parsedItems) {
+            if (!item.id) continue;
+            await addStockMutation.mutateAsync({
+              shopId: currentShop.id,
+              productId: item.id,
+              quantity: item.quantity,
+              purchasePrice: item.unitPrice
+            });
+          }
         }
-        
-        const matchingProd = products.find(p => p.id === resolvedConfirmation.productId);
-        const purchaseCost = currentPrice || Number(matchingProd?.purchase_price || 0);
-
-        await addStockMutation.mutateAsync({
-          shopId: currentShop.id,
-          productId: resolvedConfirmation.productId,
-          quantity: currentQty,
-          purchasePrice: purchaseCost
-        });
 
         setSuccessRecorded(true);
         setVoiceStatus('success');
@@ -321,7 +451,11 @@ export function VoiceAssistantOverlay() {
 
   if (!isVoiceOverlayOpen) return null;
 
-  const isConfirmedProductMissing = resolvedConfirmation && !resolvedConfirmation.productId && resolvedConfirmation.type !== 'query' && resolvedConfirmation.type !== 'product_create';
+  const isConfirmedProductMissing = resolvedConfirmation && !resolvedConfirmation.productId && resolvedConfirmation.type === 'price_update';
+  
+  const isAnyProductMissing = resolvedConfirmation?.type === 'multi_items' || resolvedConfirmation?.type === 'sale' || resolvedConfirmation?.type === 'stock_add'
+    ? parsedItems.some(item => !item.id)
+    : isConfirmedProductMissing;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-darkText/80 backdrop-blur-md animate-fade-in">
@@ -463,6 +597,34 @@ export function VoiceAssistantOverlay() {
                 </span>
               </div>
 
+              {/* Intent Toggle Selector */}
+              {(resolvedConfirmation.type === 'multi_items' || resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add') && (
+                <div className="flex bg-brand-cream/45 p-1 rounded-xl border border-brand-cream/80">
+                  <button
+                    type="button"
+                    onClick={() => handleActionTypeChange('sale')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      actionType === 'sale'
+                        ? 'bg-brand-primary text-white shadow-sm'
+                        : 'text-brand-mutedText hover:text-brand-darkText'
+                    }`}
+                  >
+                    🛒 Sale (വിൽപ്പന)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleActionTypeChange('stock_in')}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      actionType === 'stock_in'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'text-brand-mutedText hover:text-brand-darkText'
+                    }`}
+                  >
+                    📦 Add Stock (സ്റ്റോക്ക് ചേർക്കുക)
+                  </button>
+                </div>
+              )}
+
               {/* Product Match Warning */}
               {isConfirmedProductMissing && (
                 <div className="p-3 bg-red-50 border border-brand-error/15 text-brand-error text-xs rounded-xl font-semibold flex items-center gap-2">
@@ -471,92 +633,122 @@ export function VoiceAssistantOverlay() {
                 </div>
               )}
 
+              {(resolvedConfirmation.type === 'multi_items' || resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add') && parsedItems.some(item => !item.id) && (
+                <div className="p-3 bg-red-50 border border-brand-error/15 text-brand-error text-xs rounded-xl font-semibold flex flex-col gap-1.5">
+                  {parsedItems
+                    .filter(item => !item.id)
+                    .map(item => (
+                      <div key={item.product} className="flex items-center gap-2">
+                        <AlertTriangle size={14} className="shrink-0" />
+                        <span>Product "{item.product}" not found in inventory! Please add it manually.</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+
               {/* Action specific details */}
               {!isConfirmedProductMissing && (
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between font-bold text-brand-darkText">
-                    <span>Product:</span>
-                    <span>{resolvedConfirmation.productName}</span>
-                  </div>
+                  
+                  {/* Sales, Stock Restock, and Multi-item list layout */}
+                  {(resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add' || resolvedConfirmation.type === 'multi_items') && (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                      {parsedItems.map((item, idx) => (
+                        <div key={idx} className="flex flex-col p-3 bg-white border border-brand-cream/50 rounded-xl shadow-sm space-y-2 relative group">
+                          
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            onClick={() => deleteItem(idx)}
+                            className="absolute top-2.5 right-2.5 p-1 rounded-lg text-brand-mutedText hover:text-brand-error hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Remove Item"
+                          >
+                            <Trash2 size={13} />
+                          </button>
 
-                  {resolvedConfirmation.type === 'sale' && (
-                    <>
-                      <div className="flex justify-between items-center text-brand-mutedText font-semibold gap-4 py-1">
-                        <span>Quantity Sold:</span>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            step="any"
-                            value={currentQty}
-                            onChange={(e) => setEditedQty(parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 bg-white border border-brand-cream rounded-lg text-right text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                          />
-                          <span className="text-xs font-semibold">{resolvedConfirmation.unit}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center text-brand-mutedText font-semibold gap-4 py-1">
-                        <span>Selling Price:</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold">₹</span>
-                          <input
-                            type="number"
-                            step="any"
-                            value={currentPrice}
-                            onChange={(e) => setEditedPrice(parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 bg-white border border-brand-cream rounded-lg text-right text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                          />
-                          <span className="text-xs font-semibold">/{resolvedConfirmation.unit}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-brand-mutedText font-semibold py-1">
-                        <span>Stock Change:</span>
-                        <span>{resolvedConfirmation.originalStock} ➔ <strong className="text-brand-primary">{derivedValues?.newStock}</strong> {resolvedConfirmation.unit}</span>
-                      </div>
-                      <div className="border-t border-brand-cream/65 pt-2 flex justify-between font-bold items-center text-base">
-                        <span>Total Revenue:</span>
-                        <span className="text-brand-primary">₹{derivedValues?.totalAmount?.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs font-semibold text-emerald-600">
-                        <span>Net Profit:</span>
-                        <span>+₹{derivedValues?.profit?.toFixed(2)}</span>
-                      </div>
-                    </>
-                  )}
+                          {/* Product Info */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg shrink-0">
+                              {getProductEmoji(item.product)}
+                            </span>
+                            <span className="text-xs font-bold text-brand-darkText truncate pr-6">
+                              {item.product}
+                            </span>
+                          </div>
 
-                  {resolvedConfirmation.type === 'stock_add' && (
-                    <>
-                      <div className="flex justify-between items-center text-brand-mutedText font-semibold gap-4 py-1">
-                        <span>Stock Incremented:</span>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            step="any"
-                            value={currentQty}
-                            onChange={(e) => setEditedQty(parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 bg-white border border-brand-cream rounded-lg text-right text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                          />
-                          <span className="text-xs font-semibold">{resolvedConfirmation.unit}</span>
+                          {/* Editable Inputs */}
+                          <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            {/* Quantity Field */}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] text-brand-mutedText font-semibold">Quantity:</span>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={item.quantity}
+                                  onChange={(e) => updateItemQty(idx, parseFloat(e.target.value) || 0)}
+                                  className="w-full px-2 py-0.5 bg-brand-cream/25 border border-brand-cream rounded-md text-right text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                                />
+                                <span className="text-[9px] font-semibold text-brand-mutedText">{item.unit}</span>
+                              </div>
+                            </div>
+
+                            {/* Price Field */}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] text-brand-mutedText font-semibold">
+                                {actionType === 'sale' ? 'Selling Price:' : 'Purchase Price:'}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-bold text-brand-mutedText">₹</span>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={item.unitPrice}
+                                  onChange={(e) => updateItemPrice(idx, parseFloat(e.target.value) || 0)}
+                                  className="w-full px-2 py-0.5 bg-brand-cream/25 border border-brand-cream rounded-md text-right text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                                />
+                                <span className="text-[9px] font-semibold text-brand-mutedText">/{item.unit}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Projections */}
+                          <div className="flex justify-between items-center text-[9px] font-semibold text-brand-mutedText pt-1 border-t border-brand-cream/35">
+                            <div>
+                              Stock: {item.currentStock} ➔{' '}
+                              <strong className={actionType === 'sale' ? 'text-brand-primary' : 'text-amber-600'}>
+                                {actionType === 'sale'
+                                  ? Number(item.currentStock || 0) - item.quantity
+                                  : Number(item.currentStock || 0) + item.quantity}
+                              </strong>{' '}
+                              {item.unit}
+                            </div>
+                            {actionType === 'sale' && (
+                              <div className="text-brand-darkText">
+                                Subtotal: <strong className="text-brand-primary">₹{(item.quantity * (item.unitPrice || 0)).toFixed(2)}</strong>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex justify-between items-center text-brand-mutedText font-semibold gap-4 py-1">
-                        <span>Purchase Price:</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold">₹</span>
-                          <input
-                            type="number"
-                            step="any"
-                            value={currentPrice}
-                            onChange={(e) => setEditedPrice(parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 bg-white border border-brand-cream rounded-lg text-right text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                          />
-                          <span className="text-xs font-semibold">/{resolvedConfirmation.unit}</span>
+                      ))}
+                      
+                      {/* Summary calculations */}
+                      <div className="border-t border-brand-cream/60 pt-2.5 space-y-1 text-xs font-semibold text-brand-mutedText">
+                        <div className="flex justify-between text-[10px]">
+                          <span>Total Items:</span>
+                          <span>{parsedItems.length} products</span>
                         </div>
+                        {actionType === 'sale' && (
+                          <div className="flex justify-between text-brand-darkText font-bold">
+                            <span>Estimated Sale Total:</span>
+                            <span className="text-brand-primary">
+                              ₹{parsedItems.reduce((acc, item) => acc + (item.quantity * (item.unitPrice || 0)), 0).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex justify-between text-brand-mutedText font-semibold py-1">
-                        <span>Stock Change:</span>
-                        <span>{resolvedConfirmation.originalStock} ➔ <strong className="text-brand-primary">{derivedValues?.newStock}</strong> {resolvedConfirmation.unit}</span>
-                      </div>
-                    </>
+                    </div>
                   )}
 
                   {resolvedConfirmation.type === 'product_create' && (
@@ -626,22 +818,31 @@ export function VoiceAssistantOverlay() {
                       </p>
                     </div>
                   )}
+
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-2 w-full">
                 <Button 
                   variant="secondary" 
                   onClick={() => setVoiceConfirmation(null)} 
-                  className="flex-1 py-2 text-xs"
+                  className="flex-1 py-2.5 text-xs cursor-pointer font-bold"
                 >
                   Reject
                 </Button>
                 <Button
                   onClick={handleConfirmAction}
-                  className="flex-1 py-2 text-xs"
-                  disabled={isConfirmedProductMissing || voiceStatus === 'processing'}
+                  className={`flex-1 py-2.5 text-xs cursor-pointer font-bold ${
+                    (resolvedConfirmation.type === 'multi_items' || resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add') && actionType === 'stock_in'
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600'
+                      : ''
+                  }`}
+                  disabled={
+                    isAnyProductMissing || 
+                    voiceStatus === 'processing' || 
+                    ((resolvedConfirmation.type === 'multi_items' || resolvedConfirmation.type === 'sale' || resolvedConfirmation.type === 'stock_add') && parsedItems.length === 0)
+                  }
                 >
                   {resolvedConfirmation.type === 'query' ? 'Ok, Done' : 'Confirm Action'}
                 </Button>
@@ -661,10 +862,10 @@ export function VoiceAssistantOverlay() {
           {/* SUCCESS MESSAGE */}
           {successRecorded && !queryResultStr && (
             <div className="p-4 bg-green-50 border border-brand-primary/20 rounded-2xl text-center text-sm font-bold text-brand-primary">
-              ✓ {resolvedConfirmation?.type === 'sale' && 'Sale recorded successfully!'}
-              {resolvedConfirmation?.type === 'stock_add' && 'Stock inventory restocked!'}
-              {resolvedConfirmation?.type === 'price_update' && 'Selling price updated!'}
-              {resolvedConfirmation?.type === 'product_create' && 'New product added to catalog!'}
+              ✓ {confirmedActionType === 'sale' && 'Sale recorded successfully!'}
+              {confirmedActionType === 'stock_add' && 'Stock inventory restocked!'}
+              {confirmedActionType === 'price_update' && 'Selling price updated!'}
+              {confirmedActionType === 'product_create' && 'New product added to catalog!'}
               Database synced in background.
             </div>
           )}
@@ -737,4 +938,26 @@ function getEmojiKeyByName(name: string): string {
   if (normalized.includes('garlic') || normalized.includes('veluthulli') || normalized.includes('വെളുത്തുള്ളി')) return 'garlic';
   if (normalized.includes('lemon') || normalized.includes('naranga') || normalized.includes('cherunaranga') || normalized.includes('നാരങ്ങ')) return 'lemon';
   return 'default';
+}
+
+function getProductEmoji(name: string): string {
+  const normalized = name.toLowerCase();
+  if (normalized.includes('tomato') || normalized.includes('തക്കാളി') || normalized.includes('thakkali') || normalized.includes('thakkaali')) return '🍅';
+  if (normalized.includes('potato') || normalized.includes('ഉരുളക്കിഴങ്ങ്') || normalized.includes('urula') || normalized.includes('urulakkizhangu')) return '🥔';
+  if (normalized.includes('apple') || normalized.includes('ആപ്പിൾ') || normalized.includes('aapil') || normalized.includes('aappil')) return '🍎';
+  if (normalized.includes('banana') || normalized.includes('പഴം') || normalized.includes('ഏത്തപ്പഴം') || normalized.includes('pazham') || normalized.includes('ethapazham')) return '🍌';
+  if (normalized.includes('coconut') || normalized.includes('തേങ്ങ') || normalized.includes('thenga')) return '🥥';
+  if (normalized.includes('spinach') || normalized.includes('ചീര') || normalized.includes('cheera')) return '🥬';
+  if (normalized.includes('onion') || normalized.includes('ഉള്ളി') || normalized.includes('സവാള') || normalized.includes('ulli') || normalized.includes('savala')) return '🧅';
+  if (normalized.includes('carrot') || normalized.includes('കാരറ്റ്') || normalized.includes('karat')) return '🥕';
+  if (normalized.includes('strawberry') || normalized.includes('സ്ട്രോബെറി')) return '🍓';
+  if (normalized.includes('blueberry') || normalized.includes('ബ്ലൂബെറി')) return '🫐';
+  if (normalized.includes('mango') || normalized.includes('മാങ്ങ') || normalized.includes('manga')) return '🥭';
+  if (normalized.includes('orange') || normalized.includes('ഓറഞ്ച്')) return '🍊';
+  if (normalized.includes('grape') || normalized.includes('munthiri') || normalized.includes('മുന്തിരി') || normalized.includes('grapes')) return '🍇';
+  if (normalized.includes('chilli') || normalized.includes('മുളക്') || normalized.includes('mulaku')) return '🌶️';
+  if (normalized.includes('ginger') || normalized.includes('ഇഞ്ചി') || normalized.includes('inji')) return '🫚';
+  if (normalized.includes('garlic') || normalized.includes('വെളുത്തുള്ളി') || normalized.includes('veluthulli')) return '🧄';
+  if (normalized.includes('lemon') || normalized.includes('നാരങ്ങ') || normalized.includes('naranga') || normalized.includes('cherunaranga')) return '🍋';
+  return '📦';
 }

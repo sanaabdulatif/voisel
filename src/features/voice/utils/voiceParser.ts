@@ -1,7 +1,7 @@
-import type { VoiceConfirmation } from '../../../shared/lib/store';
+import type { VoiceConfirmation, VoiceConfirmationItem } from '../../../shared/lib/store';
 
 // Helper to normalize Malayalam and Manglish terms to standard numbers
-const parseNumber = (text: string): number => {
+export const parseNumber = (text: string): number => {
   const normalized = text.toLowerCase();
   
   // Digit mapping
@@ -9,7 +9,7 @@ const parseNumber = (text: string): number => {
   if (match) return parseFloat(match[0]);
   
   // Word mapping (English, Malayalam, Manglish, Tamil)
-  if (normalized.includes('one') || normalized.includes('oru') || normalized.includes('ഒരു') || normalized.includes('onnu') || normalized.includes('onn')) return 1;
+  if (normalized.includes('one') || normalized.includes('oru') || normalized.includes('ഒരു') || normalized.includes('onnu') || normalized.includes('onn') || normalized.includes('ഒരിക്കലും')) return 1;
   if (normalized.includes('two') || normalized.includes('rand') || normalized.includes('രണ്ട്') || normalized.includes('randu') || normalized.includes('dandi') || normalized.includes('dandu') || normalized.includes('rendu') || normalized.includes('ranti')) return 2;
   if (normalized.includes('three') || normalized.includes('moon') || normalized.includes('മൂന്ന്') || normalized.includes('moonu') || normalized.includes('moonnu')) return 3;
   if (normalized.includes('four') || normalized.includes('naal') || normalized.includes('നാല്') || normalized.includes('naalu') || normalized.includes('nalu') || normalized.includes('nal')) return 4;
@@ -26,14 +26,24 @@ const parseNumber = (text: string): number => {
 // List of supported product names in different formats
 const PRODUCTS = [
   { id: 'tomato', names: ['tomato', 'tomatoes', 'thakkaali', 'thakkali', 'തക്കാളി', 'thakali'] },
-  { id: 'potato', names: ['potato', 'potatoes', 'urulakkizhangu', 'urula', 'ഉരുളക്കിഴങ്ങ്', 'urulakilangu', 'kizhangu', 'kilangu'] },
+  { id: 'potato', names: ['potato', 'potatoes', 'urulakkizhangu', 'urula', 'ഉരുളക്കിഴങ്ങ്', 'urulakilangu', 'kizhangu', 'kilangu', 'പൊട്ടേറ്റോ', 'പൊട്ടറ്റോ'] },
   { id: 'apple', names: ['apple', 'apples', 'ആപ്പിൾ', 'aappil', 'aapil', 'aapadi', 'appil', 'aapili'] },
-  { id: 'banana', names: ['banana', 'bananas', 'ethapazham', 'pazham', 'ഏത്തപ്പഴം', 'പഴം', 'vazhapazham', 'banan'] },
+  { id: 'banana', names: ['banana', 'bananas', 'ethapazham', 'pazham', 'ഏത്തപ്പഴം', 'പഴം', 'vazhapazham', 'banan', 'ബനല', 'ബനാന', 'banala'] },
   { id: 'coconut', names: ['coconut', 'coconuts', 'thenga', 'തേങ്ങ', 'thengai'] },
   { id: 'spinach', names: ['spinach', 'cheera', 'ചീര', 'palak'] },
   { id: 'onion', names: ['onion', 'onions', 'savala', 'ullaari', 'ulli', 'ഉള്ളി', 'സവാള', 'chuvannulli', 'cheriyulli'] },
   { id: 'carrot', names: ['carrot', 'carrots', 'കാരറ്റ്', 'karat'] },
-  { id: 'blueberry', names: ['blueberry', 'blueberries', 'ബ്ലൂബെറി'] }
+  { id: 'blueberry', names: ['blueberry', 'blueberries', 'ബ്ലൂബെറി'] },
+  { id: 'strawberry', names: ['strawberry', 'strawberries', 'സ്ട്രോബെറി'] },
+  { id: 'mango', names: ['mango', 'manga', 'മാങ്ങ', 'mangos'] },
+  { id: 'orange', names: ['orange', 'oranges', 'ഓറഞ്ച്'] },
+  { id: 'grapes', names: ['grapes', 'grape', 'munthiri', 'മുന്തിരി'] },
+  { id: 'chilli', names: ['chilli', 'chilis', 'mulaku', 'മുളക്'] },
+  { id: 'ginger', names: ['ginger', 'inji', 'ഇഞ്ചി'] },
+  { id: 'garlic', names: ['garlic', 'veluthulli', 'വെളുത്തുള്ളി'] },
+  { id: 'lemon', names: ['lemon', 'naranga', 'cherunaranga', 'നാരങ്ങ', 'lemons'] },
+  { id: 'papaya', names: ['papaya', 'omakka', 'കപ്പളങ്ങ'] },
+  { id: 'guava', names: ['guava', 'perakka', 'പേരയ്ക്ക'] }
 ];
 
 const parseProduct = (text: string): { id: string; matchedName: string } | null => {
@@ -217,16 +227,16 @@ const replaceWordsWithNumbers = (text: string): string => {
   let result = text.toLowerCase();
   
   const mappings = [
-    { words: ['one', 'oru', 'oru', 'ഒരു', 'onnu', 'onn'], digit: '1' },
-    { words: ['two', 'rand', 'രണ്ട്', 'randu', 'dandi', 'dandu', 'rendu', 'ranti', 'ടു', 'തു', 'too', 'tu'], digit: '2' },
-    { words: ['three', 'moon', 'മൂന്ന്', 'moonu', 'moonnu'], digit: '3' },
-    { words: ['four', 'naal', 'നാല്', 'naalu', 'nalu', 'nal'], digit: '4' },
-    { words: ['five', 'anch', 'അഞ്ച്', 'anchu', 'anju'], digit: '5' },
-    { words: ['six', 'aar', 'ആറ്', 'aaru', 'aru'], digit: '6' },
-    { words: ['seven', 'ezh', 'ഏഴ്', 'ezhu', 'elu'], digit: '7' },
-    { words: ['eight', 'ett', 'എട്ട്', 'ettu'], digit: '8' },
-    { words: ['nine', 'ombath', 'ഒൻപത്', 'ombathu', 'onpathu', 'onpath'], digit: '9' },
-    { words: ['ten', 'path', 'പത്ത്', 'pathu'], digit: '10' }
+    { words: ['one', 'oru', 'ഒരു', 'onnu', 'onn', 'ഒന്ന്', 'ഒന്നു', 'ഒരിക്കലും'], digit: '1' },
+    { words: ['two', 'rand', 'രണ്ട്', 'രണ്ടു', 'randu', 'dandi', 'dandu', 'rendu', 'ranti', 'ടു', 'തു', 'too', 'tu'], digit: '2' },
+    { words: ['three', 'moon', 'മൂന്ന്', 'മൂന്നു', 'moonu', 'moonnu'], digit: '3' },
+    { words: ['four', 'naal', 'നാല്', 'നാലു', 'naalu', 'nalu', 'nal'], digit: '4' },
+    { words: ['five', 'anch', 'അഞ്ച്', 'അഞ്ചു', 'anchu', 'anju'], digit: '5' },
+    { words: ['six', 'aar', 'ആറ്', 'ആറു', 'aaru', 'aru'], digit: '6' },
+    { words: ['seven', 'ezh', 'ഏഴ്', 'ഏഴു', 'ezhu', 'elu'], digit: '7' },
+    { words: ['eight', 'ett', 'എട്ട്', 'എട്ടു', 'ettu'], digit: '8' },
+    { words: ['nine', 'ombath', 'ഒൻപത്', 'ഒൻപതു', 'ombathu', 'onpathu', 'onpath'], digit: '9' },
+    { words: ['ten', 'path', 'പത്ത്', 'പത്തു', 'pathu'], digit: '10' }
   ];
 
   for (const map of mappings) {
@@ -244,8 +254,111 @@ const replaceWordsWithNumbers = (text: string): string => {
   return result;
 };
 
+export const parseMultiItems = (text: string): VoiceConfirmationItem[] | null => {
+  if (!text || text.trim() === '') return null;
+  
+  const cleaned = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+  const normalized = replaceWordsWithNumbers(cleaned);
+
+  // 1. Find all product matches and their indices
+  interface MatchedProductPos {
+    prodId: string;
+    prodName: string;
+    index: number;
+    matchedLength: number;
+  }
+  
+  const matchedPositions: MatchedProductPos[] = [];
+  for (const prod of PRODUCTS) {
+    for (const name of prod.names) {
+      let idx = normalized.indexOf(name);
+      while (idx !== -1) {
+        const isDuplicate = matchedPositions.some(
+          pos => idx >= pos.index && idx < pos.index + pos.matchedLength
+        );
+        if (!isDuplicate) {
+          matchedPositions.push({
+            prodId: prod.id,
+            prodName: prod.id.charAt(0).toUpperCase() + prod.id.slice(1),
+            index: idx,
+            matchedLength: name.length
+          });
+        }
+        idx = normalized.indexOf(name, idx + 1);
+      }
+    }
+  }
+  
+  // If fewer than 2 products are matched, it's not a multi-item command
+  if (matchedPositions.length < 2) return null;
+  
+  matchedPositions.sort((a, b) => a.index - b.index);
+
+  // 2. Find all number matches and their indices
+  const numberRegex = /\b\d+(\.\d+)?\b/g;
+  let match;
+  const matchedNumbers: { val: number; index: number; textLength: number }[] = [];
+  while ((match = numberRegex.exec(normalized)) !== null) {
+    matchedNumbers.push({
+      val: parseFloat(match[0]),
+      index: match.index,
+      textLength: match[0].length
+    });
+  }
+
+  // 3. Associate each product with its closest number
+  const items: VoiceConfirmationItem[] = [];
+  
+  for (const p of matchedPositions) {
+    let closestNum = 1;
+    let closestDist = Infinity;
+    let closestNumObj: any = null;
+    
+    for (const n of matchedNumbers) {
+      const dist = Math.min(
+        Math.abs(n.index - p.index),
+        Math.abs(n.index - (p.index + p.matchedLength))
+      );
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestNum = n.val;
+        closestNumObj = n;
+      }
+    }
+    
+    // Extract unit from text surrounding the closest number
+    let unitText = '';
+    if (closestNumObj) {
+      const start = Math.max(0, closestNumObj.index - 5);
+      const end = Math.min(normalized.length, closestNumObj.index + closestNumObj.textLength + 15);
+      unitText = normalized.substring(start, end);
+    }
+    const unit = parseUnit(unitText);
+    
+    items.push({
+      productId: p.prodId,
+      productName: p.prodName,
+      quantity: closestNum,
+      unit: unit
+    });
+  }
+  
+  return items.length >= 2 ? items : null;
+};
+
 export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
   if (!text || text.trim() === '') return null;
+
+  // Check for multi-item command first
+  const multiItems = parseMultiItems(text);
+  if (multiItems) {
+    return {
+      type: 'multi_items',
+      productName: 'Multiple Items',
+      items: multiItems
+    };
+  }
+
   // Clean zero-width characters and spaces commonly appended by Malayalam input keyboards
   const cleaned = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
   const normalized = replaceWordsWithNumbers(cleaned);
@@ -384,15 +497,15 @@ export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
           cleaned.includes('for') ||
           cleaned.includes('വില');
         if (hasPriceIndicator) {
-          price = parseFloat(numbers[0]);
+          price = parseFloat(numbers[0] || '0');
           quantity = 1;
         } else {
-          quantity = parseFloat(numbers[0]);
+          quantity = parseFloat(numbers[0] || '0');
           price = 0;
         }
       } else if (numbers.length >= 2) {
-        quantity = parseFloat(numbers[0]);
-        price = parseFloat(numbers[1]);
+        quantity = parseFloat(numbers[0] || '0');
+        price = parseFloat(numbers[1] || '0');
       }
 
       const unit = parseUnit(normalized);
@@ -431,15 +544,15 @@ export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
         cleaned.includes('roopa') || 
         cleaned.includes('രൂപ');
       if (hasPriceIndicator) {
-        price = parseFloat(numbers[0]);
+        price = parseFloat(numbers[0] || '0');
         quantity = 1;
       } else {
-        quantity = parseFloat(numbers[0]);
+        quantity = parseFloat(numbers[0] || '0');
         price = 0;
       }
     } else if (numbers.length >= 2) {
-      quantity = parseFloat(numbers[0]);
-      price = parseFloat(numbers[1]);
+      quantity = parseFloat(numbers[0] || '0');
+      price = parseFloat(numbers[1] || '0');
     }
 
     const unit = parseUnit(normalized, 'kg');
@@ -471,15 +584,15 @@ export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
         cleaned.includes('for') ||
         cleaned.includes('വില');
       if (hasPriceIndicator) {
-        price = parseFloat(numbers[0]);
+        price = parseFloat(numbers[0] || '0');
         quantity = 1;
       } else {
-        quantity = parseFloat(numbers[0]);
+        quantity = parseFloat(numbers[0] || '0');
         price = 0;
       }
     } else if (numbers.length >= 2) {
-      quantity = parseFloat(numbers[0]);
-      price = parseFloat(numbers[1]);
+      quantity = parseFloat(numbers[0] || '0');
+      price = parseFloat(numbers[1] || '0');
     }
 
     const unit = parseUnit(normalized);
