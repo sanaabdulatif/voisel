@@ -146,9 +146,7 @@ export function AuthView() {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center text-white shadow-premium mb-3">
-            <Mic size={24} />
-          </div>
+          <img src="/logo.png" alt="Voisel" className="w-16 h-16 mx-auto object-contain mb-3" />
           <h2 className="text-2xl font-bold text-brand-dark">Welcome to Voisel</h2>
           <p className="text-sm text-brand-mutedText mt-1">Manage inventory & record sales via voice</p>
         </div>

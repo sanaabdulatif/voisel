@@ -251,7 +251,8 @@ export function AppLayout() {
         {!isSettingsPage && (
           <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-brand-cream/60 sticky top-0 z-20">
             {/* Shop Selector Button */}
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
+              <img src="/logo.png" alt="Voisel" className="w-8 h-8 object-contain" />
               <button
                 onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
                 className="flex items-center gap-1.5 text-brand-darkText font-bold text-base"

@@ -1,0 +1,21 @@
+{
+  "name": "Voisel",
+  "short_name": "Voisel",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FCFAF5",
+  "theme_color": "#3A7D44",
+  "description": "Run your fresh shop with your voice.",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
