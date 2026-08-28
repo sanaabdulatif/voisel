@@ -17,7 +17,9 @@ export function VoiceAssistantOverlay() {
     setVoiceConfirmation,
     voiceError,
     setVoiceError,
-    currentShop
+    currentShop,
+    voiceLanguage,
+    setVoiceLanguage
   } = useAppStore();
 
   const { data: products = [] } = useProducts(currentShop?.id);
@@ -28,10 +30,7 @@ export function VoiceAssistantOverlay() {
   const updateProductMutation = useUpdateProduct();
   const addProductMutation = useAddProduct();
 
-  // Speech Recognition state - defaults to India English (supports bilingual English/Manglish/Malayalam accent)
-  const lang = 'en-IN';
-
-  const { startListening, stopListening, simulateSpeech } = useSpeechRecognition(lang);
+  const { startListening, stopListening, simulateSpeech } = useSpeechRecognition(voiceLanguage);
 
   // Manual command text simulation input
   const [simulationInput, setSimulationInput] = useState('');
@@ -334,12 +333,41 @@ export function VoiceAssistantOverlay() {
             <span className="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse" />
             <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">AI Voice Assistant</h3>
           </div>
-          <button 
-            onClick={handleClose} 
-            className="p-1 rounded-lg text-brand-mutedText hover:text-brand-darkText hover:bg-brand-cream/50 transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Quick Language Toggle */}
+            <div className="flex items-center bg-brand-cream/50 p-0.5 rounded-lg border border-brand-cream/80 text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => setVoiceLanguage('en-IN')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  voiceLanguage === 'en-IN'
+                    ? 'bg-brand-primary text-white shadow-sm'
+                    : 'text-brand-mutedText hover:text-brand-darkText'
+                }`}
+                title="Use English / Manglish acoustic model"
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setVoiceLanguage('ml-IN')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  voiceLanguage === 'ml-IN'
+                    ? 'bg-brand-primary text-white shadow-sm'
+                    : 'text-brand-mutedText hover:text-brand-darkText'
+                }`}
+                title="Use native Malayalam acoustic model"
+              >
+                മലയാളം
+              </button>
+            </div>
+            <button 
+              onClick={handleClose} 
+              className="p-1 rounded-lg text-brand-mutedText hover:text-brand-darkText hover:bg-brand-cream/50 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1 flex flex-col justify-between space-y-6">
@@ -676,8 +704,8 @@ export function VoiceAssistantOverlay() {
 function getCategoryByName(name: string): 'Vegetables' | 'Fruits' | 'Other' {
   const normalized = name.toLowerCase();
   const fruits = [
-    'apple', 'banana', 'coconut', 'mango', 'orange', 'grape', 'grapes', 'lemon', 'berry', 'strawberry', 'fruits',
-    'ആപ്പിൾ', 'പഴം', 'ഏത്തപ്പഴം', 'തേങ്ങ', 'മാങ്ങ', 'ഓറഞ്ച്', 'മുന്തിരി', 'നാരങ്ങ', 'സ്ട്രോബെറി'
+    'apple', 'banana', 'coconut', 'mango', 'orange', 'grape', 'grapes', 'lemon', 'berry', 'strawberry', 'blueberry', 'blueberries', 'fruits',
+    'ആപ്പിൾ', 'പഴം', 'ഏത്തപ്പഴം', 'തേങ്ങ', 'മാങ്ങ', 'ഓറഞ്ച്', 'മുന്തിരി', 'നാരങ്ങ', 'സ്ട്രോബെറി', 'ബ്ലൂബെറി'
   ];
   const vegetables = [
     'tomato', 'potato', 'spinach', 'onion', 'carrot', 'cabbage', 'garlic', 'ginger', 'pepper', 'veg', 'chilli', 'chili', 'palak', 'cheera',
@@ -700,6 +728,7 @@ function getEmojiKeyByName(name: string): string {
   if (normalized.includes('onion') || normalized.includes('savala') || normalized.includes('ulli') || normalized.includes('ഉള്ളി') || normalized.includes('സവാള')) return 'onion';
   if (normalized.includes('carrot') || normalized.includes('karat') || normalized.includes('കാരറ്റ്')) return 'carrot';
   if (normalized.includes('strawberry') || normalized.includes('സ്ട്രോബെറി')) return 'strawberry';
+  if (normalized.includes('blueberry') || normalized.includes('blueberries') || normalized.includes('ബ്ലൂബെറി')) return 'blueberry';
   if (normalized.includes('mango') || normalized.includes('manga') || normalized.includes('മാങ്ങ')) return 'mango';
   if (normalized.includes('orange') || normalized.includes('ഓറഞ്ച്')) return 'orange';
   if (normalized.includes('grape') || normalized.includes('munthiri') || normalized.includes('മുന്തിരി')) return 'grape';

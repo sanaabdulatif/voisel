@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store, Sparkles, ShoppingBag } from 'lucide-react';
 import { useAppStore } from '../../../shared/lib/store';
@@ -10,11 +10,17 @@ const INITIAL_PRODUCTS: any[] = [];
 
 export function ShopSetupView() {
   const navigate = useNavigate();
-  const { session, setCurrentShop } = useAppStore();
+  const { session, currentShop, setCurrentShop } = useAppStore();
   
   const [shopName, setShopName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentShop) {
+      navigate('/');
+    }
+  }, [currentShop, navigate]);
 
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();

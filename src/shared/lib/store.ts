@@ -44,6 +44,8 @@ interface AppState {
   setVoiceTranscript: (text: string) => void;
   voiceConfirmation: VoiceConfirmation | null;
   setVoiceConfirmation: (confirm: VoiceConfirmation | null) => void;
+  voiceLanguage: 'en-IN' | 'ml-IN';
+  setVoiceLanguage: (voiceLanguage: 'en-IN' | 'ml-IN') => void;
   
   // Reset all state on logout
   reset: () => void;
@@ -73,6 +75,11 @@ export const useAppStore = create<AppState>((set) => ({
   setVoiceTranscript: (voiceTranscript) => set({ voiceTranscript }),
   voiceConfirmation: null,
   setVoiceConfirmation: (voiceConfirmation) => set({ voiceConfirmation }),
+  voiceLanguage: (localStorage.getItem('voisel_voice_language') as 'en-IN' | 'ml-IN') || 'en-IN',
+  setVoiceLanguage: (voiceLanguage) => {
+    localStorage.setItem('voisel_voice_language', voiceLanguage);
+    set({ voiceLanguage });
+  },
   
   reset: () => {
     localStorage.removeItem('voisel_current_shop_id');

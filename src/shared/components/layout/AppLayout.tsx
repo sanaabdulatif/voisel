@@ -14,6 +14,8 @@ import { useAppStore } from '../../lib/store';
 import type { VoiselShop } from '../../lib/store';
 import { supabase } from '../../lib/supabase';
 import { inventoryService } from '../../services/inventoryService';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 export function AppLayout() {
   const { 
@@ -29,6 +31,31 @@ export function AppLayout() {
   const [shops, setShops] = useState<VoiselShop[]>([]);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const isSettingsPage = location.pathname === '/settings';
+
+  const [isAddShopOpen, setIsAddShopOpen] = useState(false);
+  const [newShopName, setNewShopName] = useState('');
+  const [isSubmittingShop, setIsSubmittingShop] = useState(false);
+  const [shopError, setShopError] = useState<string | null>(null);
+
+  const handleCreateShop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newShopName.trim() || !session?.user?.id) return;
+    setIsSubmittingShop(true);
+    setShopError(null);
+    try {
+      const data = await inventoryService.createShop(newShopName.trim(), session.user.id);
+      setNewShopName('');
+      setCurrentShop(data);
+      // Reload shops list
+      const updatedShops = await inventoryService.getShops(session.user.id);
+      setShops(updatedShops);
+      setIsAddShopOpen(false);
+    } catch (err: any) {
+      setShopError(err.message || 'Failed to add shop branch.');
+    } finally {
+      setIsSubmittingShop(false);
+    }
+  };
 
   // Fetch shops
   useEffect(() => {
@@ -158,7 +185,7 @@ export function AppLayout() {
                 <button
                   onClick={() => {
                     setIsShopDropdownOpen(false);
-                    navigate('/settings');
+                    setIsAddShopOpen(true);
                   }}
                   className="w-full text-left px-3 py-2 text-xs font-semibold text-brand-primary hover:text-brand-dark"
                 >
@@ -269,7 +296,7 @@ export function AppLayout() {
                     <button
                       onClick={() => {
                         setIsShopDropdownOpen(false);
-                        navigate('/settings');
+                        setIsAddShopOpen(true);
                       }}
                       className="w-full text-left px-3 py-1.5 text-xs font-semibold text-brand-primary"
                     >
@@ -318,6 +345,62 @@ export function AppLayout() {
           );
         })}
       </div>
+
+      {/* ADD SHOP MODAL */}
+      <Modal
+        isOpen={isAddShopOpen}
+        onClose={() => {
+          setIsAddShopOpen(false);
+          setNewShopName('');
+          setShopError(null);
+        }}
+        title="Add New Shop Branch"
+      >
+        <form onSubmit={handleCreateShop} className="space-y-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-brand-darkText uppercase tracking-wider">
+              Shop / Branch Name
+            </label>
+            <input
+              type="text"
+              className="premium-input"
+              placeholder="e.g. Sana Mart - Kaloor Branch"
+              value={newShopName}
+              onChange={(e) => setNewShopName(e.target.value)}
+              required
+              disabled={isSubmittingShop}
+              autoFocus
+            />
+          </div>
+          
+          {shopError && (
+            <p className="text-xs text-brand-error font-medium">{shopError}</p>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsAddShopOpen(false);
+                setNewShopName('');
+                setShopError(null);
+              }}
+              className="flex-1 py-2.5 text-xs font-bold"
+              disabled={isSubmittingShop}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 py-2.5 text-xs font-bold"
+              disabled={isSubmittingShop}
+            >
+              {isSubmittingShop ? 'Adding...' : 'Create Branch'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

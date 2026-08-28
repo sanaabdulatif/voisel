@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, ArrowRight, LogIn, UserPlus } from 'lucide-react';
+import { Mic, LogIn, UserPlus } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from '../../../shared/lib/supabase';
 import { useAppStore } from '../../../shared/lib/store';
 import { inventoryService } from '../../../shared/services/inventoryService';
-import { config } from '../../../shared/lib/config';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';

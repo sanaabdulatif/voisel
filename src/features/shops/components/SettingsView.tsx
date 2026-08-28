@@ -109,7 +109,7 @@ export function SettingsView() {
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold text-brand-dark tracking-tight">Settings</h2>
-        <p className="text-xs text-brand-mutedText font-semibold mt-0.5">Manage branch outlets, language preferences, and profile credentials</p>
+        <p className="text-xs text-brand-mutedText font-semibold mt-0.5">Manage branch outlets and profile credentials</p>
       </div>
 
       {/* USER PROFILE INFO */}
@@ -130,8 +130,6 @@ export function SettingsView() {
           <span>Logout</span>
         </Button>
       </div>
-
-
 
       {/* MULTI-SHOP LIST */}
       <div className="glass-card p-6 space-y-6">

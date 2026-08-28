@@ -32,7 +32,8 @@ const PRODUCTS = [
   { id: 'coconut', names: ['coconut', 'coconuts', 'thenga', 'തേങ്ങ', 'thengai'] },
   { id: 'spinach', names: ['spinach', 'cheera', 'ചീര', 'palak'] },
   { id: 'onion', names: ['onion', 'onions', 'savala', 'ullaari', 'ulli', 'ഉള്ളി', 'സവാള', 'chuvannulli', 'cheriyulli'] },
-  { id: 'carrot', names: ['carrot', 'carrots', 'കാരറ്റ്', 'karat'] }
+  { id: 'carrot', names: ['carrot', 'carrots', 'കാരറ്റ്', 'karat'] },
+  { id: 'blueberry', names: ['blueberry', 'blueberries', 'ബ്ലൂബെറി'] }
 ];
 
 const parseProduct = (text: string): { id: string; matchedName: string } | null => {
@@ -117,6 +118,11 @@ const translateToEnglish = (name: string): string => {
     // Strawberry
     'സ്ട്രോബെറി': 'Strawberry',
     'strawberry': 'Strawberry',
+
+    // Blueberry
+    'ബ്ലൂബെറി': 'Blueberry',
+    'blueberry': 'Blueberry',
+    'blueberries': 'Blueberry',
     
     // Mango
     'മാങ്ങ': 'Mango',
@@ -364,15 +370,32 @@ export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
   if (isStockAdd) {
     const product = parseProduct(normalized);
     if (product) {
-      const quantity = parseNumber(normalized);
-      const unit = parseUnit(normalized);
-      
-      // Try to find if a purchase price is specified, e.g. "for 30 rupees" or default it to 0
-      // We will look for numbers that aren't the quantity
       const numbers = normalized.match(/\b\d+(\.\d+)?\b/g) || [];
-      const qtyStr = quantity.toString();
-      const otherNumbers = numbers.filter(n => n !== qtyStr);
-      const price = otherNumbers.length > 0 ? parseFloat(otherNumbers[0]) : 0;
+      let quantity = 1;
+      let price = 0;
+
+      if (numbers.length === 1) {
+        const hasPriceIndicator = 
+          cleaned.includes('₹') || 
+          cleaned.includes('rs') || 
+          cleaned.includes('rupees') || 
+          cleaned.includes('roopa') || 
+          cleaned.includes('രൂപ') ||
+          cleaned.includes('for') ||
+          cleaned.includes('വില');
+        if (hasPriceIndicator) {
+          price = parseFloat(numbers[0]);
+          quantity = 1;
+        } else {
+          quantity = parseFloat(numbers[0]);
+          price = 0;
+        }
+      } else if (numbers.length >= 2) {
+        quantity = parseFloat(numbers[0]);
+        price = parseFloat(numbers[1]);
+      }
+
+      const unit = parseUnit(normalized);
 
       return {
         type: 'stock_add',
@@ -380,7 +403,7 @@ export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
         productId: product.id,
         quantity: quantity,
         unit: unit,
-        price: price // purchase price if provided
+        price: price
       };
     }
   }
@@ -396,42 +419,70 @@ export const parseVoiceCommand = (text: string): VoiceConfirmation | null => {
     (normalized.includes('ഐറ്റം') && (normalized.includes('ആഡ്') || normalized.includes('ചേർക്കുക') || normalized.includes('ചേർക്കൂ')));
 
   if (isCreateIntent) {
-    const existingProduct = parseProduct(normalized);
-    // If it matches an existing product, it's a stock addition, not a new product!
-    if (!existingProduct) {
-      const quantity = parseNumber(normalized);
-      const unit = parseUnit(normalized, 'kg');
-      
-      // Look for selling price (usually the second number or the number that is not the quantity)
-      const numbers = normalized.match(/\b\d+(\.\d+)?\b/g) || [];
-      const qtyStr = quantity.toString();
-      const otherNumbers = numbers.filter(n => n !== qtyStr);
-      const price = otherNumbers.length > 0 ? parseFloat(otherNumbers[0]) : 0;
+    const numbers = normalized.match(/\b\d+(\.\d+)?\b/g) || [];
+    let quantity = 1;
+    let price = 0;
 
-      const productName = extractNewProductName(normalized);
-
-      return {
-        type: 'product_create',
-        productName: productName,
-        quantity: quantity,
-        unit: unit,
-        price: price // selling price for new product!
-      };
+    if (numbers.length === 1) {
+      const hasPriceIndicator = 
+        cleaned.includes('₹') || 
+        cleaned.includes('rs') || 
+        cleaned.includes('rupees') || 
+        cleaned.includes('roopa') || 
+        cleaned.includes('രൂപ');
+      if (hasPriceIndicator) {
+        price = parseFloat(numbers[0]);
+        quantity = 1;
+      } else {
+        quantity = parseFloat(numbers[0]);
+        price = 0;
+      }
+    } else if (numbers.length >= 2) {
+      quantity = parseFloat(numbers[0]);
+      price = parseFloat(numbers[1]);
     }
+
+    const unit = parseUnit(normalized, 'kg');
+    const productName = extractNewProductName(normalized);
+
+    return {
+      type: 'product_create',
+      productName: productName,
+      quantity: quantity,
+      unit: unit,
+      price: price // selling price for new product
+    };
   }
 
   // 4. Fallback to Sales Intent (default behavior if user says e.g. "Apple 2 kilo vittu", "1 kilo banana sold for 120")
   const product = parseProduct(normalized);
   if (product) {
-    const quantity = parseNumber(normalized);
-    const unit = parseUnit(normalized);
-    
-    // Extract selling price: look for "for 180", "180 roopa", "180 rupees", "180 രൂപയ്ക്ക്"
-    // Find all numbers in the sentence
     const numbers = normalized.match(/\b\d+(\.\d+)?\b/g) || [];
-    const qtyStr = quantity.toString();
-    const otherNumbers = numbers.filter(n => n !== qtyStr);
-    const price = otherNumbers.length > 0 ? parseFloat(otherNumbers[0]) : 0;
+    let quantity = 1;
+    let price = 0;
+
+    if (numbers.length === 1) {
+      const hasPriceIndicator = 
+        cleaned.includes('₹') || 
+        cleaned.includes('rs') || 
+        cleaned.includes('rupees') || 
+        cleaned.includes('roopa') || 
+        cleaned.includes('രൂപ') ||
+        cleaned.includes('for') ||
+        cleaned.includes('വില');
+      if (hasPriceIndicator) {
+        price = parseFloat(numbers[0]);
+        quantity = 1;
+      } else {
+        quantity = parseFloat(numbers[0]);
+        price = 0;
+      }
+    } else if (numbers.length >= 2) {
+      quantity = parseFloat(numbers[0]);
+      price = parseFloat(numbers[1]);
+    }
+
+    const unit = parseUnit(normalized);
 
     return {
       type: 'sale',

@@ -58,7 +58,7 @@ export function useSpeechRecognition(lang: 'en-IN' | 'ml-IN' = 'en-IN') {
             setVoiceConfirmation(parsed);
             setVoiceStatus('success');
           } else {
-            setVoiceError("Could not parse command. Try: 'Tomato 2 kg vittu' or 'Apple 2 kg sold'. Tip: If Malayalam script fails, switch to 'English / Manglish' setting in Settings and speak in Manglish!");
+            setVoiceError("Could not parse command. Try: 'Tomato 2 kg vittu' or 'Apple 2 kg sold'. Tip: Switch between English and Malayalam using the buttons at the top of this modal!");
             setVoiceStatus('error');
           }
         }, 1000);
@@ -115,7 +115,7 @@ export function useSpeechRecognition(lang: 'en-IN' | 'ml-IN' = 'en-IN') {
           setVoiceConfirmation(parsed);
           setVoiceStatus('success');
         } else {
-          setVoiceError("Could not parse command. Try: 'Tomato 2 kg vittu' or 'Apple 2 kg sold'. Tip: If Malayalam script fails, switch to 'English / Manglish' setting in Settings and speak in Manglish!");
+          setVoiceError("Could not parse command. Try: 'Tomato 2 kg vittu' or 'Apple 2 kg sold'. Tip: Switch between English and Malayalam using the buttons at the top of this modal!");
           setVoiceStatus('error');
         }
       }, 1000);

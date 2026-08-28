@@ -4,8 +4,6 @@ import { z } from 'zod';
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from '../../../shared/lib/supabase';
-import { config } from '../../../shared/lib/config';
-import { useAppStore } from '../../../shared/lib/store';
 import { Input } from '../../../shared/components/ui/Input';
 import { Button } from '../../../shared/components/ui/Button';
 

@@ -19,6 +19,7 @@ const EMOJI_MAP: Record<string, { emoji: string; bg: string }> = {
   onion: { emoji: '🧅', bg: 'bg-purple-50 text-purple-600 border-purple-100' },
   carrot: { emoji: '🥕', bg: 'bg-orange-50 text-orange-600 border-orange-150' },
   strawberry: { emoji: '🍓', bg: 'bg-red-50 text-red-500 border-red-100' },
+  blueberry: { emoji: '🫐', bg: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
   mango: { emoji: '🥭', bg: 'bg-amber-50 text-amber-500 border-amber-100' },
   orange: { emoji: '🍊', bg: 'bg-orange-50 text-orange-500 border-orange-100' },
   grape: { emoji: '🍇', bg: 'bg-purple-50 text-purple-500 border-purple-100' },
@@ -32,9 +33,7 @@ const EMOJI_MAP: Record<string, { emoji: string; bg: string }> = {
 export function ProductCard({ product, onSell, onEdit, onDelete }: ProductCardProps) {
   const quantity = Number(product.quantity);
   const threshold = Number(product.low_stock_threshold);
-  const purchasePrice = Number(product.purchase_price);
   const sellingPrice = Number(product.selling_price);
-  const profitPerUnit = sellingPrice - purchasePrice;
 
   // Determine Stock Status
   let statusText = 'In Stock';

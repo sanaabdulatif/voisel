@@ -44,6 +44,7 @@ export const inventoryService = {
     const { data, error } = await supabase
       .from('voisel_shops')
       .select('*')
+      .eq('owner_id', ownerId)
       .order('name');
     
     if (error) throw error;
@@ -87,7 +88,7 @@ export const inventoryService = {
     if (error) throw error;
   },
 
-  async prepopulateProducts(shopId: string, productsList: any[]): Promise<Product[]> {
+  async prepopulateProducts(_shopId: string, productsList: any[]): Promise<Product[]> {
     if (!productsList || productsList.length === 0) return [];
 
     const { data: createdProducts, error: productsError } = await supabase

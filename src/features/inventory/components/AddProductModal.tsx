@@ -227,6 +227,7 @@ function getEmojiKeyByName(name: string): string {
   if (normalized.includes('onion') || normalized.includes('savala') || normalized.includes('ulli') || normalized.includes('ഉള്ളി') || normalized.includes('സവാള')) return 'onion';
   if (normalized.includes('carrot') || normalized.includes('karat') || normalized.includes('കാരറ്റ്')) return 'carrot';
   if (normalized.includes('strawberry') || normalized.includes('സ്ട്രോബെറി')) return 'strawberry';
+  if (normalized.includes('blueberry') || normalized.includes('blueberries') || normalized.includes('ബ്ലൂബെറി')) return 'blueberry';
   if (normalized.includes('mango') || normalized.includes('manga') || normalized.includes('മാങ്ങ')) return 'mango';
   if (normalized.includes('orange') || normalized.includes('ഓറഞ്ച്')) return 'orange';
   if (normalized.includes('grape') || normalized.includes('munthiri') || normalized.includes('മുന്തിരി')) return 'grape';
@@ -240,8 +241,8 @@ function getEmojiKeyByName(name: string): string {
 function getCategoryByName(name: string): 'Vegetables' | 'Fruits' | 'Other' {
   const normalized = name.toLowerCase();
   const fruits = [
-    'apple', 'banana', 'coconut', 'mango', 'orange', 'grape', 'grapes', 'lemon', 'berry', 'strawberry', 'fruits',
-    'ആപ്പിൾ', 'പഴം', 'ഏത്തപ്പഴം', 'തേങ്ങ', 'മാങ്ങ', 'ഓറഞ്ച്', 'മുന്തിരി', 'നാരങ്ങ', 'സ്ട്രോബെറി'
+    'apple', 'banana', 'coconut', 'mango', 'orange', 'grape', 'grapes', 'lemon', 'berry', 'strawberry', 'blueberry', 'blueberries', 'fruits',
+    'ആപ്പിൾ', 'പഴം', 'ഏത്തപ്പഴം', 'തേങ്ങ', 'മാങ്ങ', 'ഓറഞ്ച്', 'മുന്തിരി', 'നാരങ്ങ', 'സ്ട്രോബെറി', 'ബ്ലൂബെറി'
   ];
   const vegetables = [
     'tomato', 'potato', 'spinach', 'onion', 'carrot', 'cabbage', 'garlic', 'ginger', 'pepper', 'veg', 'chilli', 'chili', 'palak', 'cheera',
